@@ -1,5 +1,5 @@
 [package]
-name = "wow-rs"
+name = "wow"
 version = "0.0.0"
 authors = ["Vladimir Zapparov <dervus.grim@gmail.com>"]
 

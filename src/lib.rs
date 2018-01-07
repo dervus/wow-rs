@@ -4,13 +4,14 @@ extern crate byteorder;
 extern crate rgb;
 extern crate cgmath;
 
+mod misc;
 #[macro_use]
 mod read_ext;
-mod reader;
+pub mod reader;
 #[macro_use]
 mod chunked;
-mod blp;
-mod m2;
-mod wmo;
-mod adt;
-mod wdt;
+pub mod blp;
+pub mod m2;
+pub mod wmo;
+pub mod adt;
+pub mod wdt;

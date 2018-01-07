@@ -1,20 +1,31 @@
+use std::fmt;
 use std::io::{self, Read, Seek, SeekFrom};
 use std::sync::Arc;
 use byteorder::{ReadBytesExt, LittleEndian as LE};
 use rgb::{RGB8, RGBA8};
+use misc::Blob;
 use read_ext::ReadExt;
 use reader::ResourceReader;
 
+const PALETTE_SIZE: usize = 256;
 #[allow(dead_code)]
-pub type Palette = [RGB8; 256];
+pub struct Palette([RGB8; PALETTE_SIZE]);
 
-#[allow(dead_code)]
-pub struct IndexedPixels {
-    pub indexes: Vec<u8>,
-    pub alpha_values: Option<Vec<u8>>,
+impl fmt::Debug for Palette {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&&self.0[..], f)
+    }
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
+pub struct IndexedPixels {
+    pub indexes: Blob<u8>,
+    pub alpha_values: Option<Blob<u8>>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
 pub enum Compression {
     DXT1,
     DXT3,
@@ -22,9 +33,10 @@ pub enum Compression {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum ImageData {
     TrueColor {
-        mipmaps: Vec<Vec<RGBA8>>,
+        mipmaps: Vec<Blob<RGBA8>>,
     },
     Indexed {
         palette: Palette,
@@ -33,11 +45,12 @@ pub enum ImageData {
     },
     Compressed {
         compression: Compression,
-        mipmaps: Vec<Vec<u8>>,
+        mipmaps: Vec<Blob<u8>>,
     }
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct Image {
     pub height: u32,
     pub width: u32,
@@ -102,8 +115,8 @@ pub fn load(reader: Arc<ResourceReader>, name: &str) -> io::Result<Image> {
         1 => {
             let mut mipmaps = Vec::with_capacity(mipmap_blocks.len());
 
-            let mut palette = [RGB8::default(); 256];
-            for index in 0..256 {
+            let mut palette = [RGB8::default(); PALETTE_SIZE];
+            for index in 0..PALETTE_SIZE {
                 let color = input.read_u8tuple4()?;
                 palette[index] = RGB8 {
                     b: color.0,
@@ -143,13 +156,13 @@ pub fn load(reader: Arc<ResourceReader>, name: &str) -> io::Result<Image> {
                 input = block.into_inner();
 
                 mipmaps.push(IndexedPixels {
-                    indexes,
-                    alpha_values
+                    indexes: indexes.into(),
+                    alpha_values: alpha_values.map(|v| v.into())
                 });
             }
 
             ImageData::Indexed {
-                palette,
+                palette: Palette(palette),
                 full_alpha: alpha_depth > 1,
                 mipmaps
             }
@@ -173,7 +186,7 @@ pub fn load(reader: Arc<ResourceReader>, name: &str) -> io::Result<Image> {
             for (offset, size) in mipmap_blocks {
                 trace!("reading {} bytes at {} offset", size, offset);
                 input.seek(SeekFrom::Start(offset as u64))?;
-                mipmaps.push(input.read_vec(size as usize)?);
+                mipmaps.push(Blob(input.read_vec(size as usize)?));
             }
 
             ImageData::Compressed { compression, mipmaps }
@@ -182,7 +195,7 @@ pub fn load(reader: Arc<ResourceReader>, name: &str) -> io::Result<Image> {
         // uncompressed, truecolor
         //
         3 => {
-            let mut mipmaps = Vec::<Vec<RGBA8>>::with_capacity(mipmap_blocks.len());
+            let mut mipmaps = Vec::with_capacity(mipmap_blocks.len());
 
             for (offset, _) in mipmap_blocks {
                 input.seek(SeekFrom::Start(offset as u64))?;
@@ -200,7 +213,7 @@ pub fn load(reader: Arc<ResourceReader>, name: &str) -> io::Result<Image> {
                     }
                 }
 
-                mipmaps.push(pixels);
+                mipmaps.push(Blob(pixels));
             }
 
             ImageData::TrueColor { mipmaps }

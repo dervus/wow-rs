@@ -33,7 +33,7 @@ pub fn split_resource_name(input: &str) -> (&str, &str, &str) {
     (dir, file, ext)
 }
 
-mod fs;
+pub mod fs;
 
 #[cfg(test)]
 mod tests {
