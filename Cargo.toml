@@ -8,3 +8,6 @@ log = "0.3"
 byteorder = "1"
 rgb = "0.8"
 cgmath = "0.16"
+
+[dev-dependencies]
+simplelog = "0.4"
