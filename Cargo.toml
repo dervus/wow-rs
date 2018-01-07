@@ -1,0 +1,10 @@
+[package]
+name = "wow-rs"
+version = "0.0.0"
+authors = ["Vladimir Zapparov <dervus.grim@gmail.com>"]
+
+[dependencies]
+log = "0.3"
+byteorder = "1"
+rgb = "0.8"
+cgmath = "0.16"
