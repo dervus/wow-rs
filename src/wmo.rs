@@ -4,7 +4,7 @@ use std::io::{self, Cursor};
 use std::sync::Arc;
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian as LE};
 use read_ext::ReadExt;
-use chunked::Chunked;
+use chunked_old::Chunked;
 use reader::{ResourceReader, split_resource_name};
 
 #[allow(dead_code)]

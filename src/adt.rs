@@ -4,14 +4,14 @@ use byteorder::{ReadBytesExt, LittleEndian as LE};
 use cgmath::prelude::*;
 use cgmath::Vector3;
 use read_ext::ReadExt;
-use chunked::Chunked;
+use chunked_old::Chunked;
 use reader::ResourceReader;
 
 const TILE_SIZE: f32 = 533.0 + 1.0 / 3.0;
 const CHUNK_SIZE: f32 = TILE_SIZE / 16.0;
 const UNIT_SIZE: f32 = CHUNK_SIZE / 8.0;
 #[allow(dead_code)]
-const MAP_CENTER: f32 = TILE_SIZE * 32.0;
+const MAP_CENTER: f32 = TILE_SIZE * 32.0; // every map is 64x64 tiles
 
 #[allow(dead_code)]
 pub struct HeightMapVertex {

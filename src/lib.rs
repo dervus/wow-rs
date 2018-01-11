@@ -9,7 +9,7 @@ mod misc;
 mod read_ext;
 pub mod reader;
 #[macro_use]
-mod chunked;
+mod chunked_old;
 pub mod blp;
 pub mod m2;
 pub mod wmo;
