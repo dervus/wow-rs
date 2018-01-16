@@ -9,32 +9,6 @@ macro_rules! io_error {
     ($err:expr, $($arg:expr),+) => (io_error!(Other, $err, $($arg),+));
 }
 
-macro_rules! read {
-    ($r:ident, u8) =>  ($r.read_u8());
-    ($r:ident, u16) => {{use byteorder; $r.read_u16::<byteorder::LittleEndian>()}};
-    ($r:ident, u32) => {{use byteorder; $r.read_u32::<byteorder::LittleEndian>()}};
-    ($r:ident, u64) => {{use byteorder; $r.read_u64::<byteorder::LittleEndian>()}};
-    ($r:ident, i8) =>  ($r.read_i8());
-    ($r:ident, i16) => {{use byteorder; $r.read_i16::<byteorder::LittleEndian>()}};
-    ($r:ident, i32) => {{use byteorder; $r.read_i32::<byteorder::LittleEndian>()}};
-    ($r:ident, i64) => {{use byteorder; $r.read_i64::<byteorder::LittleEndian>()}};
-    ($r:ident, f32) => {{use byteorder; $r.read_f32::<byteorder::LittleEndian>()}};
-    ($r:ident, f64) => {{use byteorder; $r.read_f64::<byteorder::LittleEndian>()}};
-    ($r:ident, u8tuple4) => ($r.read_u8tuple4());
-    ($r:ident, f32tuple2) => {{use byteorder; $r.read_f32tuple2::<byteorder::LittleEndian>()}};
-    ($r:ident, f32tuple3) => {{use byteorder; $r.read_f32tuple3::<byteorder::LittleEndian>()}};
-    ($r:ident, f32tuple4) => {{use byteorder; $r.read_f32tuple4::<byteorder::LittleEndian>()}};
-}
-
-macro_rules! let_read {
-    ($reader:ident => $($kind:ident $name:ident;)+) => {
-        $(
-            let $name = read!($reader, $kind)?;
-            trace!("{} = {:?}", stringify!($name), $name);
-        )*
-    };
-}
-
 pub trait ReadExt : Read + ReadBytesExt {
     fn read_vec_into(&mut self, size: usize, target: &mut Vec<u8>) -> io::Result<()> {
         let bytes_read = self.take(size as u64).read_to_end(target)?;
@@ -104,6 +78,7 @@ pub trait ReadExt : Read + ReadBytesExt {
         Ok(result)
     }
 
+    #[inline]
     fn read_u8tuple4(&mut self) -> io::Result<(u8, u8, u8, u8)> {
         let _1 = self.read_u8()?;
         let _2 = self.read_u8()?;
@@ -112,12 +87,14 @@ pub trait ReadExt : Read + ReadBytesExt {
         Ok((_1, _2, _3, _4))
     }
 
+    #[inline]
     fn read_f32tuple2<T: ByteOrder>(&mut self) -> io::Result<(f32, f32)> {
         let _1 = self.read_f32::<T>()?;
         let _2 = self.read_f32::<T>()?;
         Ok((_1, _2))
     }
 
+    #[inline]
     fn read_f32tuple3<T: ByteOrder>(&mut self) -> io::Result<(f32, f32, f32)> {
         let _1 = self.read_f32::<T>()?;
         let _2 = self.read_f32::<T>()?;
@@ -125,6 +102,7 @@ pub trait ReadExt : Read + ReadBytesExt {
         Ok((_1, _2, _3))
     }
 
+    #[inline]
     fn read_f32tuple4<T: ByteOrder>(&mut self) -> io::Result<(f32, f32, f32, f32)> {
         let _1 = self.read_f32::<T>()?;
         let _2 = self.read_f32::<T>()?;
@@ -134,3 +112,71 @@ pub trait ReadExt : Read + ReadBytesExt {
     }
 }
 impl<R: Read + ReadBytesExt> ReadExt for R {}
+
+pub trait FromRead: Sized {
+    fn from_read<O: ByteOrder>(reader: &mut Read) -> io::Result<Self>;
+}
+
+impl FromRead for i8 {
+    fn from_read<O: ByteOrder>(reader: &mut Read) -> io::Result<Self> {
+        reader.read_i8()
+    }
+}
+
+impl FromRead for u8 {
+    fn from_read<O: ByteOrder>(reader: &mut Read) -> io::Result<Self> {
+        reader.read_u8()
+    }
+}
+
+
+impl FromRead for (u8, u8, u8, u8) {
+    fn from_read<O: ByteOrder>(mut reader: &mut Read) -> io::Result<Self> {
+        reader.read_u8tuple4()
+    }
+}
+
+impl FromRead for (f32, f32) {
+    fn from_read<O: ByteOrder>(mut reader: &mut Read) -> io::Result<Self> {
+        reader.read_f32tuple2::<O>()
+    }
+}
+
+impl FromRead for (f32, f32, f32) {
+    fn from_read<O: ByteOrder>(mut reader: &mut Read) -> io::Result<Self> {
+        reader.read_f32tuple3::<O>()
+    }
+}
+
+impl FromRead for (f32, f32, f32, f32) {
+    fn from_read<O: ByteOrder>(mut reader: &mut Read) -> io::Result<Self> {
+        reader.read_f32tuple4::<O>()
+    }
+}
+
+macro_rules! impl_from_read {
+    ($method:ident, $fortype:ty) => {
+        impl FromRead for $fortype {
+            fn from_read<O: ::byteorder::ByteOrder>(reader: &mut ::std::io::Read) -> ::std::io::Result<Self> {
+                reader.$method::<O>()
+            }
+        }
+    };
+}
+impl_from_read!(read_i16, i16);
+impl_from_read!(read_i32, i32);
+impl_from_read!(read_i64, i64);
+impl_from_read!(read_u16, u16);
+impl_from_read!(read_u32, u32);
+impl_from_read!(read_u64, u64);
+impl_from_read!(read_f32, f32);
+impl_from_read!(read_f64, f64);
+
+macro_rules! let_read {
+    ($byteorder:ty | $reader:ident => $( $fieldname:ident : $fieldtype:ty ; )+ ) => {
+        $(
+            let $fieldname = <$fieldtype as ::read_ext::FromRead>::from_read::<$byteorder>(&mut $reader)?;
+            trace!("{} = {:?}", stringify!($fieldname), &$fieldname);
+        )*
+    }
+}

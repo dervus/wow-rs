@@ -108,10 +108,10 @@ impl Chunked {
 }
 
 macro_rules! let_chunk {
-    ($chunks:ident $token:expr => $($kind:ident $name:ident;)*) => {
+    ($byteorder:ident | $chunks:ident $token:expr => $( $name:ident : $kind:ty ; )*) => {
         let token = $token;
         let mut reader = $chunks.cursor(&token)?;
-        let_read! { reader => $($kind $name;)* }
+        let_read! { $byteorder | reader => $( $name : $kind ; )* }
         {
             let len = reader.get_ref().len();
             let pos = reader.position() as usize;

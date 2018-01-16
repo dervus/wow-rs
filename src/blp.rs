@@ -68,14 +68,14 @@ pub fn load(reader: Arc<ResourceReader>, name: &str) -> io::Result<Image> {
         return Err(io_error!(InvalidData, "file header isn't BLP2"));
     }
 
-    let_read! { input =>
-        u32 version;
-        u8 encoding;
-        u8 alpha_depth;
-        u8 preferred_format;
-        u8 has_mipmaps;
-        u32 width;
-        u32 height;
+    let_read! { LE | input =>
+        version: u32;
+        encoding: u8;
+        alpha_depth: u8;
+        preferred_format: u8;
+        has_mipmaps: u8;
+        width: u32;
+        height: u32;
     }
 
     if version != 1 {

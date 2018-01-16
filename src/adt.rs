@@ -3,7 +3,6 @@ use std::sync::Arc;
 use byteorder::{ReadBytesExt, LittleEndian as LE};
 use cgmath::prelude::*;
 use cgmath::Vector3;
-use read_ext::ReadExt;
 use chunked_old::Chunked;
 use reader::ResourceReader;
 
@@ -44,35 +43,35 @@ pub fn load(reader: Arc<ResourceReader>, name: &str) -> io::Result<MapTile> {
 
     for mut data in chunks.cursor_all("MCNK")? {
         // TODO: add high-res holes data support
-        let_read! { data =>
-            u32 flags;
-            u32 index_x;
-            u32 index_y;
-            u32 num_layers;
-            u32 num_doodad_refs;
-            u32 offset_height;
-            u32 offset_normal;
-            u32 offset_layer;
-            u32 offset_refs;
-            u32 offset_alpha;
-            u32 size_alpha;
-            u32 offset_shadow;
-            u32 size_shadow;
-            u32 area_id;
-            u32 num_mapobj_refs;
-            u16 holes;
-            u16 unknown1;
-            u64 texmap1;
-            u64 texmap2;
-            u64 no_effect_doodad;
-            u32 offset_sound_emitters;
-            u32 num_sound_emitters;
-            u32 offset_liquid;
-            u32 size_liquid;
-            f32tuple3 position;
-            u32 offset_mccv;
-            u32 offset_mclv;
-            u32 unused;
+        let_read! { LE | data =>
+            flags: u32;
+            index_x: u32;
+            index_y: u32;
+            num_layers: u32;
+            num_doodad_refs: u32;
+            offset_height: u32;
+            offset_normal: u32;
+            offset_layer: u32;
+            offset_refs: u32;
+            offset_alpha: u32;
+            size_alpha: u32;
+            offset_shadow: u32;
+            size_shadow: u32;
+            area_id: u32;
+            num_mapobj_refs: u32;
+            holes: u16;
+            unknown1: u16;
+            texmap1: u64;
+            texmap2: u64;
+            no_effect_doodad: u64;
+            offset_sound_emitters: u32;
+            num_sound_emitters: u32;
+            offset_liquid: u32;
+            size_liquid: u32;
+            position: (f32, f32, f32);
+            offset_mccv: u32;
+            offset_mclv: u32;
+            unused: u32;
         }
 
         let subchunks = Chunked::read(&mut data)?;
