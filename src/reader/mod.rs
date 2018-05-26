@@ -4,6 +4,7 @@ pub trait ResourceHandle : Read + Seek {}
 impl<R: Read + Seek> ResourceHandle for R {}
 
 pub trait ResourceReader {
+    fn exists(&self, name: &str) -> io::Result<bool>;
     fn open(&self, name: &str) -> io::Result<Box<ResourceHandle>>;
 }
 

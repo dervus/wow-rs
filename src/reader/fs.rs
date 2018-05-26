@@ -16,6 +16,14 @@ impl FsResourceReader {
 }
 
 impl ResourceReader for FsResourceReader {
+    fn exists(&self, name: &str) -> io::Result<bool> {
+        match find_resource_path(&self.path, name) {
+            Ok(target) => Ok(target.exists()),
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(e),
+        }
+    }
+
     fn open(&self, name: &str) -> io::Result<Box<ResourceHandle>> {
         let target = find_resource_path(&self.path, name)?;
         let file = File::open(target)?;

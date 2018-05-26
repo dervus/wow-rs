@@ -14,7 +14,7 @@ pub trait ReadExt : Read + ReadBytesExt {
         let bytes_read = self.take(size as u64).read_to_end(target)?;
 
         if bytes_read < size {
-            return Err(io_error!(UnexpectedEof, "cannot read {} more bytes from input", bytes_read));
+            return Err(io_error!(UnexpectedEof, "cannot read {} out of {} bytes from input", bytes_read, size));
         }
 
         Ok(())
@@ -36,7 +36,10 @@ pub trait ReadExt : Read + ReadBytesExt {
         String::from_utf8(result).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
-    fn read_cstring_table_into(&mut self, target: &mut BTreeMap<u32, String>) -> io::Result<()> {
+    fn read_cstring_table_with<F>(&mut self, mut f: F) -> io::Result<()>
+    where
+        F: FnMut(u32, String)
+    {
         let mut string_buffer = Vec::new();
         let mut index = 0;
         let mut string_id = -1;
@@ -62,7 +65,7 @@ pub trait ReadExt : Read + ReadBytesExt {
                 string_buffer.clear();
 
                 trace!("found string: [{}] '{}'", string_id, &string);
-                target.insert(string_id as u32, string);
+                f(string_id as u32, string);
                 string_id = -1;
             }
 
@@ -72,9 +75,27 @@ pub trait ReadExt : Read + ReadBytesExt {
         Ok(())
     }
 
+    fn read_cstring_table_into(&mut self, target: &mut BTreeMap<u32, String>) -> io::Result<()> {
+        self.read_cstring_table_with(|index, string| {
+            target.insert(index, string);
+        })
+    }
+
     fn read_cstring_table(&mut self) -> io::Result<BTreeMap<u32, String>> {
         let mut result = BTreeMap::new();
         self.read_cstring_table_into(&mut result)?;
+        Ok(result)
+    }
+
+    fn read_cstring_array_into(&mut self, target: &mut Vec<String>) -> io::Result<()> {
+        self.read_cstring_table_with(|_, string| {
+            target.push(string);
+        })
+    }
+
+    fn read_cstring_array(&mut self) -> io::Result<Vec<String>> {
+        let mut result = Vec::new();
+        self.read_cstring_array_into(&mut result)?;
         Ok(result)
     }
 
@@ -156,7 +177,7 @@ impl FromRead for (f32, f32, f32, f32) {
 
 macro_rules! impl_from_read {
     ($method:ident, $fortype:ty) => {
-        impl FromRead for $fortype {
+        impl ::read_ext::FromRead for $fortype {
             fn from_read<O: ::byteorder::ByteOrder>(reader: &mut ::std::io::Read) -> ::std::io::Result<Self> {
                 reader.$method::<O>()
             }
@@ -171,6 +192,17 @@ impl_from_read!(read_u32, u32);
 impl_from_read!(read_u64, u64);
 impl_from_read!(read_f32, f32);
 impl_from_read!(read_f64, f64);
+
+macro_rules! impl_bitflags_from_read {
+    ($method:ident, $fortype:ident) => {
+        impl ::read_ext::FromRead for $fortype {
+            fn from_read<O: ::byteorder::ByteOrder>(reader: &mut ::std::io::Read) -> ::std::io::Result<Self> {
+                let bits = reader.$method::<O>()?;
+                Ok($fortype::from_bits_truncate(bits))
+            }
+        }
+    }
+}
 
 macro_rules! let_read {
     ($byteorder:ty | $reader:ident => $( $fieldname:ident : $fieldtype:ty ; )+ ) => {
