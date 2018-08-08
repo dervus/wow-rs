@@ -54,7 +54,7 @@ impl AlphaMap {
     }
 
     pub fn get(&self, index: usize) -> u8 {
-        let value = self.data[index / 2];
+        let value = self.data[index / 2]; // FIXME: wrong index for u8?
 
         if self.is_u4 {
             if value % 2 == 0 {
