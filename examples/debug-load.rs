@@ -28,7 +28,7 @@ fn main() {
         let reader = Arc::new(wow::reader::fs::FsResourceReader::new(dir));
 
         match ext.as_str() {
-            ".blp" => match wow::blp::load(reader, file) {
+            ".blp" => match wow::blp::load(reader.clone(), file) {
                 Ok(image) => {
                     info!("{:?} loaded successfully", path);
                     println!("{:#?}", &image);
@@ -37,9 +37,33 @@ fn main() {
                     error!("Failed to load {:?}; Cause: {}", path, &e);
                 }
             }
-            ".adt" => match wow::adt::MapTile::load(reader, file, None) {
+            ".adt" => match wow::adt::MapTile::load(reader.clone(), file, None) {
                 Ok(_) => {
                     info!("{:?} loaded successfully", path);
+                }
+                Err(e) => {
+                    error!("Failed to load {:?}; Cause: {}", path, &e);
+                }
+            }
+            ".wmo" => match wow::wmo::load(reader.clone(), file) {
+                Ok(wmo) => {
+                    info!("{:?} loaded successfully", path);
+                    let mut loaded_groups = Vec::new();
+
+                    for group_info in &wmo.groups {
+                        match group_info.load(reader.clone(), 0) {
+                            Ok(wmo_group) => {
+                                info!("{:?} loaded successfully", &group_info.resource_key);
+                                loaded_groups.push(wmo_group);
+                            }
+                            Err(error) => {
+                                error!("Failed to load {:?}; Cause: {}", &group_info.resource_key, error);
+                            }
+                        }
+                    }
+
+                    println!("{:#?}", &wmo);
+                    for group in loaded_groups { println!("{:#?}", &group) }
                 }
                 Err(e) => {
                     error!("Failed to load {:?}; Cause: {}", path, &e);

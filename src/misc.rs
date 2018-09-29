@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::fmt;
 use rgb::{RGB8, RGBA8};
 
@@ -18,6 +18,12 @@ impl<T> Deref for Blob<T> {
     }
 }
 
+impl<T> DerefMut for Blob<T> {
+    fn deref_mut(&mut self) -> &mut Vec<T> {
+        &mut self.0
+    }
+}
+
 macro_rules! impl_debug {
     ($($T:ty;)+) => {
         $(
@@ -32,6 +38,7 @@ macro_rules! impl_debug {
 
 impl_debug! {
     u8;
+    u16;
     (u8, u8);
     (u8, u8, u8);
     (u8, u8, u8, u8);
