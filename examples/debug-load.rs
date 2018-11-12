@@ -51,7 +51,7 @@ fn main() {
                     let mut loaded_groups = Vec::new();
 
                     for group_info in &wmo.groups {
-                        match group_info.load(reader.clone(), 0) {
+                        match group_info.load(reader.clone()) {
                             Ok(wmo_group) => {
                                 info!("{:?} loaded successfully", &group_info.resource_key);
                                 loaded_groups.push(wmo_group);

@@ -57,7 +57,7 @@ impl AlphaMap {
         let value = self.data[index / 2]; // FIXME: wrong index for u8?
 
         if self.is_u4 {
-            if value % 2 == 0 {
+            if index % 2 == 0 {
                 value & 0b00001111
             } else {
                 (value & 0b11110000) >> 4
